@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📸 Photo with Location Label (Enhanced)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    video, canvas {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      margin-top: 10px;
+      width: 400px;
+      height: 300px;
+      object-fit: cover;
+      background: #000;
+      display: block;
+    }
+
+    #photo-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    /* Invisible clickable area on top of the maps URL */
+    #map-link {
+      position: absolute;
+      bottom: 28px; /* aligned with text position */
+      left: 10px;
+      width: 380px;
+      height: 14px;
+      cursor: pointer;
+      opacity: 0; /* keep invisible */
+      z-index: 5;
+    }
+
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      margin: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #1e40af;
+    }
+
+    #label {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #222;
+      text-align: center;
+      width: 400px;
+      word-break: break-word;
+    }
+
+    #label a {
+      color: #2563eb;
+      text-decoration: underline;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📍 Capture Photo with Enhanced Label</h2>
+
+  <video id="video" autoplay></video>
+
+  <div id="photo-container">
+    <canvas id="canvas" width="400" height="300" class="hidden"></canvas>
+    <a id="map-link" href="#" target="_blank"></a>
+  </div>
+
+  <div>
+    <button id="takePhoto">Take Photo</button>
+    <button id="addLabel" disabled>Add Location Label</button>
+    <button id="savePhoto" disabled>Save Photo</button>
+  </div>
+
+  <div id="label"></div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const takePhotoBtn = document.getElementById('takePhoto');
+    const addLabelBtn = document.getElementById('addLabel');
+    const savePhotoBtn = document.getElementById('savePhoto');
+    const labelDiv = document.getElementById('label');
+    const mapLink = document.getElementById('map-link');
+
+    const SERP_API_KEY = "0f0212972c03cde0fb3a727655a2f0ff9b6082c59feae8539a9817e3d1e4314a";
+
+    // 🎥 Start camera
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => video.srcObject = stream)
+      .catch(err => alert("Camera access denied: " + err.message));
+
+    // 📸 Take photo
+    takePhotoBtn.addEventListener('click', () => {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.classList.remove('hidden');
+      addLabelBtn.disabled = false;
+      labelDiv.textContent = "✅ Photo captured! Now click 'Add Location Label'.";
+    });
+
+    // 📍 Add label
+    addLabelBtn.addEventListener('click', async () => {
+      labelDiv.textContent = "Fetching location...";
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        try {
+          const API_BASE_URL = "http://localhost:8000"; // Adjust if needed
+          const apiUrl = `${API_BASE_URL}/api/get-location?lat=${lat}&lon=${lon}`;
+          const res = await fetch(apiUrl);
+          const data = await res.json();
+          console.log(data)
+
+
+          const plusCode = data.plus_code || "Not available";
+          const mapsUrl = data.maps_url || "Unavailable";
+
+          const timestamp = new Date().toLocaleString();
+
+          // Label for canvas (smaller font)
+          const labelLines = [
+            `📍 ${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+            `➕ ${plusCode}`,
+            `🌍 ${mapsUrl}`,
+            `🕒 ${timestamp}`
+          ];
+
+          // Draw label background (lowered)
+          const boxHeight = 95;
+          ctx.fillStyle = "rgba(0,0,0,0.6)";
+          ctx.fillRect(0, canvas.height - boxHeight, canvas.width, boxHeight);
+          ctx.fillStyle = "white";
+          ctx.font = "11px Arial";
+
+          // Slightly shifted text lower to utilize bottom space
+          labelLines.forEach((line, i) => {
+            ctx.fillText(line, 10, canvas.height - (boxHeight - 25) + i * 14);
+          });
+
+          // ✅ Clickable overlay link setup
+          mapLink.href = mapsUrl;
+
+          // ✅ HTML label below (clickable map link)
+          labelDiv.innerHTML = `
+            <p><b>📍 Coordinates:</b> ${lat.toFixed(5)}, ${lon.toFixed(5)}<br>
+            <b>➕ Address:</b> ${plusCode}<br>
+            <b>🌍 Maps URL:</b> <a href="${mapsUrl}" target="_blank">${mapsUrl}</a><br>
+            <b>🕒</b> ${timestamp}</p>
+            <p style="color:green;font-weight:bold;">✅ Label added successfully</p>
+          `;
+
+          savePhotoBtn.disabled = false;
+        } catch (err) {
+          labelDiv.textContent = "Error fetching location: " + err.message;
+        }
+      }, err => {
+        labelDiv.textContent = "Location denied: " + err.message;
+      });
+    });
+
+    // 💾 Save image
+    savePhotoBtn.addEventListener('click', () => {
+      const image = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = image;
+      a.download = `photo_with_label_${Date.now()}.png`;
+      a.click();
+    });
+  </script>
+
+</body>
+</html>

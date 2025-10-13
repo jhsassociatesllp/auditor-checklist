@@ -1,0 +1,71 @@
+body {
+    font-family: sans-serif;
+    margin: 20px;
+}
+
+form {
+    max-width: 600px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-top: 10px;
+}
+
+input, textarea, select {
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+a {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+    form {
+        padding: 10px;
+    }
+}
+
+/* --- Fix for mobile camera preview --- */
+  #photo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #video, #photo-canvas {
+    width: 90vw;          /* Responsive width */
+    max-width: 400px;     /* Don’t exceed 400px */
+    height: auto;         /* Maintain aspect ratio */
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    background-color: #000;
+    object-fit: cover;     /* Prevent stretching */
+  }
+
+  #photo-section button {
+    width: 120px;
+  }
+
+  @media (max-width: 600px) {
+    h2 {
+      font-size: 1.1rem;
+    }
+  }

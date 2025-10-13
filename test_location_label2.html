@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📸 Photo with Location Label (OpenStreetMap)</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background: #f3f4f6;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    #video, #canvas {
+      width: 90vw;
+      max-width: 400px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #000;
+      object-fit: cover;
+    }
+    #label {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center p-4">
+  <h2 class="text-xl font-semibold mb-4">📍 Capture Photo with Address Label (OSM)</h2>
+
+  <div class="relative">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" class="hidden"></canvas>
+    <div id="label" class="hidden"></div>
+  </div>
+
+  <div class="mt-4 flex gap-2">
+    <button id="takePhoto" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Take Photo</button>
+    <button id="addLabel" class="hidden bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">Add Label</button>
+    <button id="savePhoto" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Save</button>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const takeBtn = document.getElementById("takePhoto");
+    const labelBtn = document.getElementById("addLabel");
+    const saveBtn = document.getElementById("savePhoto");
+    const labelDiv = document.getElementById("label");
+
+    // Start camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => alert("Camera error: " + err.message));
+
+    // Take photo
+    takeBtn.onclick = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      video.classList.add("hidden");
+      canvas.classList.remove("hidden");
+      takeBtn.classList.add("hidden");
+      labelBtn.classList.remove("hidden");
+      saveBtn.classList.remove("hidden");
+    };
+
+    // Add location label using OpenStreetMap
+    labelBtn.onclick = () => {
+      if (!navigator.geolocation) {
+        alert("Geolocation not supported by this browser.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lon = pos.coords.longitude.toFixed(6);
+
+        console.log(`Lat: ${lat}, Lon: ${lon}`);
+
+        try {
+          // 🔥 Fetch address from OpenStreetMap Reverse Geocoding
+          const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+          const response = await fetch(url, { headers: { "User-Agent": "AuditApp/1.0" } });
+          const data = await response.json();
+
+          console.log(data);
+
+          let address = "Unknown location";
+          if (data.display_name) {
+            address = data.display_name;
+          }
+
+          const timestamp = new Date().toLocaleString();
+
+          // Draw semi-transparent box
+          ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+          ctx.fillRect(0, canvas.height - 90, canvas.width, 90);
+
+          // Add text: address + lat/lon + time
+          ctx.fillStyle = "white";
+          ctx.font = "16px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText(address, canvas.width / 2, canvas.height - 60);
+          ctx.fillText(`📍 Lat: ${lat}, Lon: ${lon}`, canvas.width / 2, canvas.height - 35);
+          ctx.fillText(`🕒 ${timestamp}`, canvas.width / 2, canvas.height - 10);
+
+          labelBtn.classList.add("hidden");
+          labelDiv.textContent = address;
+          labelDiv.classList.remove("hidden");
+          alert("✅ Location label added!");
+        } catch (err) {
+          console.error(err);
+          alert("Error fetching address: " + err.message);
+        }
+      }, err => {
+        alert("Location error: " + err.message);
+      });
+    };
+
+    // Save photo
+    saveBtn.onclick = () => {
+      const link = document.createElement("a");
+      link.download = "photo_with_address.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+  </script>
+</body>
+</html>

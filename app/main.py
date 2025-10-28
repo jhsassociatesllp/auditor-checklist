@@ -207,8 +207,8 @@ async def get_sections(emp_id: str = Depends(get_current_user)):
     try:
         today = datetime.now(timezone.utc).date().isoformat()
         audit = await temp_audit_data_collection.find_one({"user_id": emp_id, "date": today})
-        if not audit:
-            audit = await audit_data_collection.find_one({"user_id": emp_id, "date": today})
+        # if not audit:
+        #     audit = await audit_data_collection.find_one({"user_id": emp_id, "date": today})
             
         completion_status = {
             "general_report": audit["completion_status"].get("general_report", False) if audit and "completion_status" in audit else False,
@@ -1191,7 +1191,7 @@ async def export_excel(emp_id: str = Depends(get_current_user)):
         today = datetime.now(timezone.utc).date().isoformat()
         logger.info(f"Export-Excel request by {emp_id}")
 
-        audit_data = await audit_data_collection.find_one(
+        audit_data = await temp_audit_data_collection.find_one(
             {"user_id": emp_id, "date": today}
         )
         if not audit_data:
